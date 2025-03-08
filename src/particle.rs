@@ -1,12 +1,12 @@
 use sfml::{system::Vector2f, window::Event};
 
-const CLICK_TOLERANCE: f32 = 0.1;
+const CLICK_TOLERANCE: f32 = 5.0;
 
 pub struct Particle {
     pub position: Vector2f,
     pub previous_position: Vector2f,
     pub acceleration: Vector2f,
-    is_pinned: bool,
+    pub is_pinned: bool,
 }
 
 impl Particle {
@@ -57,7 +57,7 @@ pub struct Constraint {
     p1_index: usize,
     p2_index: usize,
     initial_length: f32,
-    active: bool,
+    pub active: bool,
 }
 
 impl Constraint {
@@ -139,37 +139,89 @@ fn hypot(x: f32, y: f32) -> f32 {
     (x.powi(2) + y.powi(2)).sqrt()
 }
 
-struct InputHandler {}
+pub struct InputHandler {}
 
 impl InputHandler {
     pub fn handle_mouse_click(
         event: Event,
-        particles: Vec<Particle>,
-        constraints: &Vec<Constraint>,
+        particles: &Vec<Particle>,
+        constraints: &mut Vec<Constraint>,
     ) {
         match event {
             Event::MouseButtonPressed { button, x, y }
                 if button == sfml::window::mouse::Button::Left =>
             {
-                println!("Mouse clicked at ({}, {})", x, y);
-                // Add your logic here (e.g., check if a particle was clicked)
+                Self::tear_cloth(x as f32, y as f32, &particles, constraints);
             }
             _ => {}
         }
     }
 
-    fn find_nearest_constraint(mouse_x: f32, mouse_y: f32, constraints: &Vec<Constraint>) {
-        let min_distance = CLICK_TOLERANCE;
-        for constraint in constraints {
-            let distance = point_to_segment_distance();
+    fn point_to_segment_distance(px: f32, py: f32, x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
+        let ABx = x2 - x1;
+        let ABy = y2 - y1;
+
+        let APx = px - x1;
+        let APy = py - y1;
+
+        let BPx = px - x2;
+        let BPy = py - y2;
+
+        let AB_AP = ABx * APx + ABy * APy;
+        let AB_AB = ABx * ABx + ABy + APy;
+
+        let t = AB_AP / AB_AB;
+
+        if t < 0.0 {
+            return (APx * APx + APy * APy).sqrt();
+        } else if t > 1.0 {
+            return (BPx * BPx + BPy * BPy).sqrt();
+        } else {
+            let proj_x = x1 + t * ABx;
+            let proj_y = y1 + t * ABy;
+            return ((px - proj_x) * (px - proj_x) + (py - proj_y) * (py - proj_y)).sqrt();
         }
+    }
+
+    fn find_nearest_constraint<'a>(
+        mouse_x: f32,
+        mouse_y: f32,
+        constraints: &'a mut Vec<Constraint>,
+        particles: &Vec<Particle>,
+    ) -> Option<&'a mut Constraint> {
+        let mut min_distance = CLICK_TOLERANCE;
+        let mut nearest_constraint: Option<&mut Constraint> = None;
+
+        for constraint in constraints {
+            let distance = Self::point_to_segment_distance(
+                mouse_x,
+                mouse_y,
+                constraint.get_p1_position(particles).x,
+                constraint.get_p1_position(particles).y,
+                constraint.get_p2_position(particles).x,
+                constraint.get_p2_position(particles).y,
+            );
+
+            if distance < min_distance {
+                min_distance = distance;
+                nearest_constraint = Some(constraint);
+            }
+        }
+
+        nearest_constraint
     }
 
     fn tear_cloth(
         mouse_x: f32,
         mouse_y: f32,
         particles: &Vec<Particle>,
-        constraints: &Vec<Constraint>,
+        constraints: &mut Vec<Constraint>,
     ) {
+        let nearest = Self::find_nearest_constraint(mouse_x, mouse_y, constraints, particles);
+
+        match nearest {
+            Some(n) => n.deactivate(),
+            None => {}
+        }
     }
 }

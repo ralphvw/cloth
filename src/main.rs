@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use cloth::particle::{Constraint, Particle};
+use cloth::particle::{Constraint, InputHandler, Particle};
 use sfml::{
     graphics::{
         Color, PrimitiveType, RenderTarget, RenderWindow, Vertex, VertexBuffer, VertexBufferUsage,
@@ -11,9 +11,9 @@ use sfml::{
 
 const WIDTH: f32 = 1080.0;
 const HEIGHT: f32 = 640.0;
-const PARTICLE_RADIUS: f32 = 10.0;
+// const PARTICLE_RADIUS: f32 = 10.0;
 const GRAVITY: f32 = 10.0;
-const TIME_STEP: f32 = 0.1;
+const TIME_STEP: f32 = 0.5;
 const ROW: i32 = 10;
 const COL: i32 = 10;
 const REST_DISTANCE: f32 = 30.0;
@@ -69,12 +69,18 @@ fn main() {
             if e == Event::Closed {
                 window.close();
             }
+
+            InputHandler::handle_mouse_click(e, &particles, constraints.as_mut());
         }
 
         for particle in &mut particles {
             particle.apply_force(Vector2f::new(0.0, GRAVITY));
             particle.update(TIME_STEP);
             particle.constrain_to_bounds(WIDTH, HEIGHT);
+            println!(
+                "Previous position: {}, Current Position: {}",
+                particle.previous_position.y, particle.position.y
+            );
         }
 
         for _ in 0..5 {
@@ -99,13 +105,16 @@ fn main() {
             let points = vec![Vertex::with_pos_color(particle.position, Color::WHITE)];
 
             let mut buffer =
-                VertexBuffer::new(PrimitiveType::POINTS, 1, VertexBufferUsage::DYNAMIC).unwrap();
+                VertexBuffer::new(PrimitiveType::POINTS, 1, VertexBufferUsage::STREAM).unwrap();
             _ = buffer.update(&points, 0);
 
             window.draw(buffer.deref());
         }
 
         for constraint in &constraints {
+            if !constraint.active {
+                continue;
+            }
             let lines = vec![
                 Vertex::with_pos_color(constraint.get_p1_position(&particles), Color::WHITE),
                 Vertex::with_pos_color(constraint.get_p2_position(&particles), Color::WHITE),
