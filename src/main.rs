@@ -3,8 +3,7 @@ use std::ops::Deref;
 use cloth::particle::{Constraint, Particle};
 use sfml::{
     graphics::{
-        CircleShape, Color, PrimitiveType, RenderTarget, RenderWindow, Shape, Transformable,
-        Vertex, VertexBuffer, VertexBufferUsage,
+        Color, PrimitiveType, RenderTarget, RenderWindow, Vertex, VertexBuffer, VertexBufferUsage,
     },
     system::Vector2f,
     window::{Event, Style},
@@ -12,9 +11,12 @@ use sfml::{
 
 const WIDTH: f32 = 1080.0;
 const HEIGHT: f32 = 640.0;
-const PARTICLE_RADIUS: f32 = 30.0;
+const PARTICLE_RADIUS: f32 = 10.0;
 const GRAVITY: f32 = 10.0;
 const TIME_STEP: f32 = 0.1;
+const ROW: i32 = 10;
+const COL: i32 = 10;
+const REST_DISTANCE: f32 = 30.0;
 
 fn main() {
     let mut window = RenderWindow::new(
@@ -30,21 +32,37 @@ fn main() {
     window.set_framerate_limit(60);
 
     let mut particles: Vec<Particle> = Vec::new();
-    let p1 = Particle::new(WIDTH / 2.0 - 50.0, HEIGHT / 2.0 - 50.0);
-    let p2 = Particle::new(WIDTH / 2.0 + 50.0, HEIGHT / 2.0 + 50.0);
-    let p3 = Particle::new(WIDTH / 2.0 + 50.0, HEIGHT / 2.0 - 50.0);
-    let p4 = Particle::new(WIDTH / 2.0 - 50.0, HEIGHT / 2.0 + 50.0);
-    particles.push(p1);
-    particles.push(p2);
-    particles.push(p3);
-    particles.push(p4);
+
+    for row in 0..ROW {
+        for col in 0..COL {
+            let x = col as f32 * REST_DISTANCE + WIDTH / 3.0;
+            let y = row as f32 * REST_DISTANCE + HEIGHT / 3.0;
+            let pinned = row == 0;
+            particles.push(Particle::new(x, y, pinned));
+        }
+    }
 
     let mut constraints: Vec<Constraint> = Vec::new();
-    constraints.push(Constraint::new(&particles, 0, 1));
-    constraints.push(Constraint::new(&particles, 0, 2));
-    constraints.push(Constraint::new(&particles, 0, 3));
-    constraints.push(Constraint::new(&particles, 1, 2));
-    constraints.push(Constraint::new(&particles, 2, 3));
+
+    for row in 0..ROW {
+        for col in 0..COL {
+            if col < COL - 1 {
+                constraints.push(Constraint::new(
+                    &particles,
+                    (row * COL + col) as usize,
+                    (row * COL + col + 1) as usize,
+                ));
+            }
+
+            if row < ROW - 1 {
+                constraints.push(Constraint::new(
+                    &particles,
+                    (row * COL + col) as usize,
+                    ((row + 1) * COL + col) as usize,
+                ));
+            }
+        }
+    }
 
     while window.is_open() {
         while let Some(e) = window.poll_event() {
@@ -56,10 +74,10 @@ fn main() {
         for particle in &mut particles {
             particle.apply_force(Vector2f::new(0.0, GRAVITY));
             particle.update(TIME_STEP);
-            particle.constrain_to_bounds(WIDTH, HEIGHT, PARTICLE_RADIUS);
+            particle.constrain_to_bounds(WIDTH, HEIGHT);
         }
 
-        for _ in 0..4 {
+        for _ in 0..5 {
             for constraint in &constraints {
                 constraint.satisfy(&mut particles);
             }
@@ -67,11 +85,24 @@ fn main() {
 
         window.clear(Color::BLACK);
 
+        // for particle in &particles {
+        //     let mut circle = CircleShape::new(PARTICLE_RADIUS, 30);
+        //     circle.set_fill_color(Color::WHITE);
+        //     circle.set_position((
+        //         particle.position.x - PARTICLE_RADIUS,
+        //         particle.position.y - PARTICLE_RADIUS,
+        //     ));
+        //     window.draw(&circle);
+        // }
+
         for particle in &particles {
-            let mut circle = CircleShape::new(PARTICLE_RADIUS, 30);
-            circle.set_fill_color(Color::WHITE);
-            circle.set_position(particle.position);
-            window.draw(&circle);
+            let points = vec![Vertex::with_pos_color(particle.position, Color::WHITE)];
+
+            let mut buffer =
+                VertexBuffer::new(PrimitiveType::POINTS, 1, VertexBufferUsage::DYNAMIC).unwrap();
+            _ = buffer.update(&points, 0);
+
+            window.draw(buffer.deref());
         }
 
         for constraint in &constraints {
