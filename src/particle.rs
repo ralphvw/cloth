@@ -80,6 +80,18 @@ impl Constraint {
             p2.position -= correction;
         }
     }
+
+    pub fn get_p1_position(&self, particles: &Vec<Particle>) -> Vector2f {
+        particles[self.p1_index].position
+    }
+
+    pub fn get_p2_position(&self, particles: &Vec<Particle>) -> Vector2f {
+        particles[self.p2_index].position
+    }
+
+    pub fn get_particle_indices(&self) -> (usize, usize) {
+        (self.p1_index, self.p2_index)
+    }
 }
 
 fn get_two_particles_mut(

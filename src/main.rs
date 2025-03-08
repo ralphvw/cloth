@@ -1,6 +1,11 @@
+use std::ops::Deref;
+
 use cloth::particle::{Constraint, Particle};
 use sfml::{
-    graphics::{CircleShape, Color, RenderTarget, RenderWindow, Shape, Transformable},
+    graphics::{
+        CircleShape, Color, PrimitiveType, RenderTarget, RenderWindow, Shape, Transformable,
+        Vertex, VertexBuffer, VertexBufferUsage,
+    },
     system::Vector2f,
     window::{Event, Style},
 };
@@ -67,6 +72,19 @@ fn main() {
             circle.set_fill_color(Color::WHITE);
             circle.set_position(particle.position);
             window.draw(&circle);
+        }
+
+        for constraint in &constraints {
+            let lines = vec![
+                Vertex::with_pos_color(constraint.get_p1_position(&particles), Color::WHITE),
+                Vertex::with_pos_color(constraint.get_p2_position(&particles), Color::WHITE),
+            ];
+
+            let mut buffer =
+                VertexBuffer::new(PrimitiveType::LINES, 2, VertexBufferUsage::DYNAMIC).unwrap();
+            _ = buffer.update(&lines, 0);
+
+            window.draw(buffer.deref());
         }
 
         window.display();
