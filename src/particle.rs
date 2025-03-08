@@ -25,4 +25,22 @@ impl Particle {
         self.position += velocity + self.acceleration * time_step * time_step;
         self.acceleration = Vector2f::new(0.0, 0.0);
     }
+
+    pub fn constrain_to_bounds(&mut self, width: f32, height: f32, radius: f32) {
+        if self.position.x > radius {
+            self.position.x = radius;
+        }
+
+        if self.position.x > width - radius {
+            self.position.x = width - radius;
+        }
+
+        if self.position.y < radius {
+            self.position.y = radius;
+        }
+
+        if self.position.y > height - radius {
+            self.position.y = height - radius;
+        }
+    }
 }
