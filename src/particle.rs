@@ -27,7 +27,7 @@ impl Particle {
     }
 
     pub fn constrain_to_bounds(&mut self, width: f32, height: f32, radius: f32) {
-        if self.position.x > radius {
+        if self.position.x < radius {
             self.position.x = radius;
         }
 
@@ -43,4 +43,61 @@ impl Particle {
             self.position.y = height - radius;
         }
     }
+}
+
+pub struct Constraint {
+    p1_index: usize,
+    p2_index: usize,
+    initial_length: f32,
+}
+
+impl Constraint {
+    pub fn new(particles: &Vec<Particle>, p1_index: usize, p2_index: usize) -> Self {
+        let p1 = &particles[p1_index];
+        let p2 = &particles[p2_index];
+
+        let x = p2.position.x - p1.position.x;
+        let y = p2.position.y - p1.position.y;
+        let initial_length = hypot(x, y);
+
+        Self {
+            p1_index,
+            p2_index,
+            initial_length,
+        }
+    }
+
+    pub fn satisfy(&self, particles: &mut Vec<Particle>) {
+        let (p1, p2) = get_two_particles_mut(particles, self.p1_index, self.p2_index);
+
+        let delta = p2.position - p1.position;
+        let current_length = hypot(delta.x, delta.y);
+
+        if current_length > f32::EPSILON {
+            let difference = (current_length - self.initial_length) / current_length;
+            let correction = delta * (0.5 * difference);
+            p1.position += correction;
+            p2.position -= correction;
+        }
+    }
+}
+
+fn get_two_particles_mut(
+    particles: &mut Vec<Particle>,
+    idx1: usize,
+    idx2: usize,
+) -> (&mut Particle, &mut Particle) {
+    assert!(idx1 != idx2, "Cannot get the same particle twice");
+
+    if idx1 < idx2 {
+        let (first_half, second_half) = particles.split_at_mut(idx1 + 1);
+        (&mut first_half[idx1], &mut second_half[idx2 - idx1 - 1])
+    } else {
+        let (first_half, second_half) = particles.split_at_mut(idx2 + 1);
+        (&mut second_half[idx1 - idx2 - 1], &mut first_half[idx2])
+    }
+}
+
+fn hypot(x: f32, y: f32) -> f32 {
+    (x.powi(2) + y.powi(2)).sqrt()
 }

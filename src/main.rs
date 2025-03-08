@@ -1,4 +1,4 @@
-use cloth::particle::Particle;
+use cloth::particle::{Constraint, Particle};
 use sfml::{
     graphics::{CircleShape, Color, RenderTarget, RenderWindow, Shape, Transformable},
     system::Vector2f,
@@ -25,7 +25,21 @@ fn main() {
     window.set_framerate_limit(60);
 
     let mut particles: Vec<Particle> = Vec::new();
-    particles.push(Particle::new(WIDTH / 2.0, HEIGHT / 2.0));
+    let p1 = Particle::new(WIDTH / 2.0 - 50.0, HEIGHT / 2.0 - 50.0);
+    let p2 = Particle::new(WIDTH / 2.0 + 50.0, HEIGHT / 2.0 + 50.0);
+    let p3 = Particle::new(WIDTH / 2.0 + 50.0, HEIGHT / 2.0 - 50.0);
+    let p4 = Particle::new(WIDTH / 2.0 - 50.0, HEIGHT / 2.0 + 50.0);
+    particles.push(p1);
+    particles.push(p2);
+    particles.push(p3);
+    particles.push(p4);
+
+    let mut constraints: Vec<Constraint> = Vec::new();
+    constraints.push(Constraint::new(&particles, 0, 1));
+    constraints.push(Constraint::new(&particles, 0, 2));
+    constraints.push(Constraint::new(&particles, 0, 3));
+    constraints.push(Constraint::new(&particles, 1, 2));
+    constraints.push(Constraint::new(&particles, 2, 3));
 
     while window.is_open() {
         while let Some(e) = window.poll_event() {
@@ -37,6 +51,13 @@ fn main() {
         for particle in &mut particles {
             particle.apply_force(Vector2f::new(0.0, GRAVITY));
             particle.update(TIME_STEP);
+            particle.constrain_to_bounds(WIDTH, HEIGHT, PARTICLE_RADIUS);
+        }
+
+        for _ in 0..4 {
+            for constraint in &constraints {
+                constraint.satisfy(&mut particles);
+            }
         }
 
         window.clear(Color::BLACK);
