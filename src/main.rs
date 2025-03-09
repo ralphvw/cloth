@@ -91,16 +91,6 @@ fn main() {
 
         window.clear(Color::BLACK);
 
-        // for particle in &particles {
-        //     let mut circle = CircleShape::new(PARTICLE_RADIUS, 30);
-        //     circle.set_fill_color(Color::WHITE);
-        //     circle.set_position((
-        //         particle.position.x - PARTICLE_RADIUS,
-        //         particle.position.y - PARTICLE_RADIUS,
-        //     ));
-        //     window.draw(&circle);
-        // }
-
         for particle in &particles {
             let points = vec![Vertex::with_pos_color(particle.position, Color::WHITE)];
 
