@@ -158,27 +158,27 @@ impl InputHandler {
     }
 
     fn point_to_segment_distance(px: f32, py: f32, x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
-        let ABx = x2 - x1;
-        let ABy = y2 - y1;
+        let abx = x2 - x1;
+        let aby = y2 - y1;
 
-        let APx = px - x1;
-        let APy = py - y1;
+        let apx = px - x1;
+        let apy = py - y1;
 
-        let BPx = px - x2;
-        let BPy = py - y2;
+        let bpx = px - x2;
+        let bpy = py - y2;
 
-        let AB_AP = ABx * APx + ABy * APy;
-        let AB_AB = ABx * ABx + ABy + APy;
+        let ab_ap = abx * apx + aby * apy;
+        let ab_ab = abx * abx + aby + apy;
 
-        let t = AB_AP / AB_AB;
+        let t = ab_ap / ab_ab;
 
         if t < 0.0 {
-            return (APx * APx + APy * APy).sqrt();
+            return (apx * apx + apy * apy).sqrt();
         } else if t > 1.0 {
-            return (BPx * BPx + BPy * BPy).sqrt();
+            return (bpx * bpx + bpy * bpy).sqrt();
         } else {
-            let proj_x = x1 + t * ABx;
-            let proj_y = y1 + t * ABy;
+            let proj_x = x1 + t * abx;
+            let proj_y = y1 + t * aby;
             return ((px - proj_x) * (px - proj_x) + (py - proj_y) * (py - proj_y)).sqrt();
         }
     }
